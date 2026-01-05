@@ -1,0 +1,258 @@
+swagger: "2.0"
+info:
+  title: QueueManager API
+  description: REST API for the QueueManager service that manages song queues and user interactions
+  version: 1.0.0
+  contact:
+    name: Muzika Platform
+host: api.example.com:8090
+basePath: /
+schemes:
+  - http
+  - https
+tags:
+  - name: queue
+    description: Queue management endpoints
+paths:
+  /queue:
+    get:
+      tags:
+        - queue
+      summary: Get songs in queue
+      description: Retrieve all songs in the queue for the user (currently uses default admin user)
+      operationId: getQueue
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Queue retrieved successfully
+          schema:
+            $ref: "#/definitions/QueueResponse"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/Error"
+    post:
+      tags:
+        - queue
+      summary: Add song to queue
+      description: Add a song to the queue at a specific position
+      operationId: addSongToQueue
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Song ID and position to add to queue
+          required: true
+          schema:
+            $ref: "#/definitions/AddSongToQueueRequest"
+      responses:
+        "200":
+          description: Song added to queue successfully
+        "400":
+          description: Bad request (invalid position, missing song ID)
+          schema:
+            $ref: "#/definitions/Error"
+        "404":
+          description: Song not found
+          schema:
+            $ref: "#/definitions/Error"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/Error"
+definitions:
+  Song:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the song
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      title:
+        type: string
+        description: Title of the song
+        example: "Example Song"
+      artist:
+        type: string
+        description: Artist name
+        example: "Example Artist"
+      album:
+        type: string
+        description: Album name
+        example: "Example Album"
+      genre:
+        type: string
+        description: Genre of the song
+        example: "Electronic"
+      duration:
+        type: integer
+        format: int64
+        description: Duration of the song in milliseconds
+        example: 240000
+      url:
+        type: string
+        format: uri
+        description: URL to the song resource
+        example: "https://example.com/song.mp3"
+    required:
+      - id
+  User:
+    type: object
+    properties:
+      uuid:
+        type: string
+        format: uuid
+        description: Unique identifier for the user
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      userName:
+        type: string
+        description: Username
+        example: "admin"
+    required:
+      - uuid
+      - userName
+  RequestRandomSong:
+    type: object
+    properties:
+      songId:
+        type: string
+        format: uuid
+        description: Unique identifier for the song request
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      genre:
+        type: string
+        description: Genre for the random song search
+        example: "hisa"
+    required:
+      - songId
+      - genre
+  Queue:
+    type: object
+    properties:
+      uuid:
+        type: string
+        format: uuid
+        description: Unique identifier for the queue
+        example: "550e8400-e29b-41d4-a716-446655440000"
+  UserSong:
+    type: object
+    properties:
+      userId:
+        type: string
+        format: uuid
+        description: User identifier
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      songId:
+        type: string
+        format: uuid
+        description: Song identifier
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      listenCount:
+        type: integer
+        format: int32
+        description: Number of times the song has been listened to
+        example: 5
+      firstListen:
+        type: string
+        format: date-time
+        description: Timestamp of first listen
+        example: "2024-01-01T12:00:00Z"
+      lastListen:
+        type: string
+        format: date-time
+        description: Timestamp of last listen
+        example: "2024-01-15T14:30:00Z"
+      liked:
+        type: boolean
+        description: Whether the song is liked
+        example: true
+      skipped:
+        type: boolean
+        description: Whether the song was skipped
+        example: false
+    required:
+      - userId
+      - songId
+  AddSongToQueueRequest:
+    type: object
+    properties:
+      songId:
+        type: string
+        format: uuid
+        description: Unique identifier for the song to add
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      position:
+        type: integer
+        format: int32
+        description: Position in the queue (0-based index). Use queue size to append at end.
+        example: 0
+    required:
+      - songId
+      - position
+  QueueResponse:
+    type: object
+    properties:
+      songs:
+        type: array
+        items:
+          $ref: "#/definitions/SongDTO"
+        description: List of songs in the queue
+    required:
+      - songs
+  SongDTO:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier for the song
+        example: "550e8400-e29b-41d4-a716-446655440000"
+      title:
+        type: string
+        description: Title of the song
+        example: "Example Song"
+      artist:
+        type: string
+        description: Artist name
+        example: "Example Artist"
+      album:
+        type: string
+        description: Album name
+        example: "Example Album"
+      genre:
+        type: string
+        description: Genre of the song
+        example: "Electronic"
+      duration:
+        type: integer
+        format: int64
+        description: Duration of the song in milliseconds
+        example: 240000
+      url:
+        type: string
+        format: uri
+        description: URL to the song resource
+        example: "https://example.com/song.mp3"
+    required:
+      - id
+  Error:
+    type: object
+    properties:
+      message:
+        type: string
+        description: Error message
+        example: "Internal server error"
+      status:
+        type: integer
+        format: int32
+        description: HTTP status code
+        example: 500
+    required:
+      - message
+      - status
+
