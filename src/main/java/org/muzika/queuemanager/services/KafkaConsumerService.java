@@ -16,9 +16,11 @@ public class KafkaConsumerService {
 
 
     QueueManagerService  queueManagerService;
+    QueueCheckerService queueCheckerService;
 
-    public KafkaConsumerService(QueueManagerService queueManagerService) {
+    public KafkaConsumerService(QueueManagerService queueManagerService, QueueCheckerService queueCheckerService) {
         this.queueManagerService = queueManagerService;
+        this.queueCheckerService = queueCheckerService;
     }
 
 
@@ -28,6 +30,10 @@ public class KafkaConsumerService {
 
         if (loadedSong.getStatus() == LoadedSong.Status.COMPLETED){
             queueManagerService.songLoaded(loadedSong);
+            // Check and refill queue after a song is successfully loaded
+            // Note: Using "admin" as default since Kafka messages don't have user context
+            // In the future, this could be enhanced to track which user requested the song
+            queueCheckerService.ensureMinimumQueueSize("admin");
         }else {
             queueManagerService.delete(loadedSong);
         }
