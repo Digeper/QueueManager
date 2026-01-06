@@ -5,6 +5,7 @@ import org.muzika.queuemanager.dto.AddSongToQueueRequest;
 import org.muzika.queuemanager.dto.QueueResponse;
 import org.muzika.queuemanager.dto.SongDTO;
 import org.muzika.queuemanager.dto.SongIdRequest;
+import org.muzika.queuemanager.dto.SongLikedResponse;
 import org.muzika.queuemanager.entities.Queue;
 import org.muzika.queuemanager.entities.Song;
 import org.springframework.core.io.Resource;
@@ -249,6 +250,63 @@ public class QueueController {
         } catch (Exception e) {
             log.error("Unexpected error retrieving song {}: {}", id, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/songs/{id}/liked")
+    public ResponseEntity<SongLikedResponse> getSongLikedStatus(@PathVariable UUID id) {
+        try {
+            String username = getAuthenticatedUsername();
+            
+            // Check if song is liked
+            boolean liked = userService.isSongLiked(username, id);
+            
+            return ResponseEntity.ok(new SongLikedResponse(liked));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        } catch (Exception e) {
+            log.error("Error getting song liked status: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/songs/{id}/liked")
+    public ResponseEntity<?> markSongAsLiked(@PathVariable UUID id) {
+        try {
+            String username = getAuthenticatedUsername();
+            
+            // Mark song as liked in UserSong
+            userService.markSongAsLiked(username, id);
+            
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error marking song as liked: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @PostMapping("/songs/{id}/unliked")
+    public ResponseEntity<?> markSongAsUnliked(@PathVariable UUID id) {
+        try {
+            String username = getAuthenticatedUsername();
+            
+            // Mark song as unliked in UserSong
+            userService.markSongAsUnliked(username, id);
+            
+            return ResponseEntity.ok().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error marking song as unliked: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }
     }
 

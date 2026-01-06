@@ -184,4 +184,78 @@ public class UserService {
             userSongRepository.save(userSong);
         }
     }
+
+    public void markSongAsLiked(String username, UUID songId) {
+        User user = getUserByName(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        UserSongId userSongId = new UserSongId();
+        userSongId.setUserId(user.getUuid());
+        userSongId.setSongId(songId);
+
+        Optional<UserSong> userSongOpt = userSongRepository.findById(userSongId);
+        if (userSongOpt.isPresent()) {
+            UserSong userSong = userSongOpt.get();
+            userSong.setLiked(true);
+            userSongRepository.save(userSong);
+        } else {
+            // UserSong doesn't exist, create it with liked=true
+            Song song = songService.findByUUID(songId);
+            if (song == null) {
+                throw new IllegalArgumentException("Song not found: " + songId);
+            }
+            UserSong userSong = song.toUserSong(user);
+            userSong.setLiked(true);
+            userSongRepository.save(userSong);
+        }
+    }
+
+    public void markSongAsUnliked(String username, UUID songId) {
+        User user = getUserByName(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        UserSongId userSongId = new UserSongId();
+        userSongId.setUserId(user.getUuid());
+        userSongId.setSongId(songId);
+
+        Optional<UserSong> userSongOpt = userSongRepository.findById(userSongId);
+        if (userSongOpt.isPresent()) {
+            UserSong userSong = userSongOpt.get();
+            userSong.setLiked(false);
+            userSongRepository.save(userSong);
+        } else {
+            // UserSong doesn't exist, create it with liked=false
+            Song song = songService.findByUUID(songId);
+            if (song == null) {
+                throw new IllegalArgumentException("Song not found: " + songId);
+            }
+            UserSong userSong = song.toUserSong(user);
+            userSong.setLiked(false);
+            userSongRepository.save(userSong);
+        }
+    }
+
+    public boolean isSongLiked(String username, UUID songId) {
+        User user = getUserByName(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        UserSongId userSongId = new UserSongId();
+        userSongId.setUserId(user.getUuid());
+        userSongId.setSongId(songId);
+
+        Optional<UserSong> userSongOpt = userSongRepository.findById(userSongId);
+        if (userSongOpt.isPresent()) {
+            UserSong userSong = userSongOpt.get();
+            return userSong.getLiked() != null && userSong.getLiked();
+        } else {
+            // UserSong doesn't exist, default to false
+            return false;
+        }
+    }
 }
