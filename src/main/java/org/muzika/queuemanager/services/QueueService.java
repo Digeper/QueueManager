@@ -8,8 +8,8 @@ import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.repository.QueueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -27,32 +27,49 @@ public class QueueService {
     @Autowired
     private SongService songService;
 
-    private Queue getOrCreateQueue(String username) {
+
+    public Queue getOrCreateQueue(String username) {
         try {
-            Queue queue = queueRepository.getReferenceByUser_UserName(username);
-            if (queue.getSongs() == null) {
-                queue.setSongs(new ArrayDeque<>());
+            Queue queue = queueRepository.findByUser_UserName(username);
+            if (queue == null) {
+                User user = userService.getUserByName(username);
+                if (user == null) {
+                    throw new IllegalArgumentException("User not found: " + username);
+                }
+                Queue queue1 = new Queue();
+                queue1.setUser(user);
+                // Set uuid to match userUuid (will be set by @MapsId, but ensure uuid is also set)
+                queue1.setUuid(user.getUuid());
+                // Don't set songs - leave it null, Hibernate will handle it
+                // Songs will be initialized when first accessed
+                queue1 = queueRepository.save(queue1);
+                user.setUserQueue(queue1);
+                userService.save(user);
+                return queue1;
+            }
+            // Initialize lazy-loaded songs collection within transaction
+            // Access the collection to force Hibernate to load it
+            List<Song> songs = queue.getSongs();
+            if (songs != null) {
+                songs.size(); // Force initialization of lazy collection
             }
             return queue;
-        } catch (jakarta.persistence.EntityNotFoundException e) {
-            // Queue doesn't exist, create it
-            User user = userService.getUserByName(username);
-            if (user == null) {
-                throw new IllegalArgumentException("User not found: " + username);
-            }
-            Queue queue = new Queue();
-            queue.setUser(user);
-            queue.setSongs(new ArrayDeque<>());
-            queue = queueRepository.save(queue);
-            user.setUserQueue(queue);
-            userService.save(user);
-            return queue;
+        } catch (Exception e) {
+            throw e;
+
         }
     }
 
-    public void addToQueue(String username, Song song) {
+    public void addToQueue(UUID uuid) {
+        String username = userService.getUserBySongID(uuid).getUserName();
         Queue queue = getOrCreateQueue(username);
-        queue.getSongs().addLast(song);
+        // Ensure lazy-loaded collection is initialized
+        List<Song> songs = queue.getSongs();
+        if (songs == null) {
+            songs = new ArrayList<>();
+            queue.setSongs(songs);
+        }
+        songs.add(userService.findSongById(uuid)); // Add to end (like addLast)
         queueRepository.save(queue);
     }
 
@@ -69,19 +86,21 @@ public class QueueService {
             throw new IllegalArgumentException("Song with ID " + songId + " not found");
         }
         
-        ArrayDeque<Song> songs = queue.getSongs();
-        List<Song> songList = new ArrayList<>(songs);
-        
-        // Validate position: allow 0 to size (for appending at end)
-        if (position < 0 || position > songList.size()) {
-            throw new IllegalArgumentException("Position " + position + " is out of bounds. Queue size: " + songList.size());
+        List<Song> songs = queue.getSongs();
+        if (songs == null) {
+            // Initialize the collection if it's null (lazy loading not triggered)
+            queue.setSongs(new ArrayList<>());
+            songs = queue.getSongs();
         }
         
-        // Insert at position
-        songList.add(position, song);
+        // Validate position: allow 0 to size (for appending at end)
+        if (position < 0 || position > songs.size()) {
+            throw new IllegalArgumentException("Position " + position + " is out of bounds. Queue size: " + songs.size());
+        }
         
-        // Convert back to ArrayDeque
-        queue.setSongs(new ArrayDeque<>(songList));
+        // Insert at position - List supports direct insertion
+        songs.add(position, song);
         queueRepository.save(queue);
     }
+
 }

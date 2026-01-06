@@ -1,5 +1,6 @@
 package org.muzika.queuemanager.services;
 
+import lombok.extern.slf4j.Slf4j;
 import org.muzika.queuemanager.dto.AddSongToQueueRequest;
 import org.muzika.queuemanager.dto.QueueResponse;
 import org.muzika.queuemanager.dto.SongDTO;
@@ -13,16 +14,22 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
+@Slf4j
 @RestController
 public class QueueController {
 
     private final QueueService queueService;
     private final QueueCheckerService queueCheckerService;
+    private final SongService songService;
 
-    public QueueController(QueueService queueService, QueueCheckerService queueCheckerService) {
+    public QueueController(QueueService queueService, QueueCheckerService queueCheckerService,
+                           SongService songService) {
         this.queueService = queueService;
         this.queueCheckerService = queueCheckerService;
+        this.songService = songService;
+
     }
 
     private String getAuthenticatedUsername() {
@@ -35,12 +42,17 @@ public class QueueController {
 
     @GetMapping("/queue")
     public ResponseEntity<QueueResponse> getQueue() {
+        log.debug("Get queue{}", getAuthenticatedUsername());
         try {
             String username = getAuthenticatedUsername();
-            Queue queue = queueService.getQueueByUsername(username);
+            Queue queue = queueService.getOrCreateQueue(username);
+            if (queue == null) {
+                log.error("Queue {} not found", getAuthenticatedUsername());
+            }
             
             if (queue == null || queue.getSongs() == null || queue.getSongs().isEmpty()) {
                 QueueResponse response = new QueueResponse();
+                java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username);});
                 response.setSongs(new ArrayList<>());
                 return ResponseEntity.ok(response);
             }
@@ -55,6 +67,7 @@ public class QueueController {
             response.setSongs(songDTOs);
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }

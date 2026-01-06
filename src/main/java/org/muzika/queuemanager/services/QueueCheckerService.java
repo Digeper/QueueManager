@@ -1,14 +1,18 @@
 package org.muzika.queuemanager.services;
 
+import jakarta.transaction.Transactional;
 import org.muzika.queuemanager.entities.Queue;
+import org.muzika.queuemanager.entities.Song;
 import org.muzika.queuemanager.kafkaMassages.RequestRandomSong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
+@Transactional
 public class QueueCheckerService {
 
     private static final Logger logger = LoggerFactory.getLogger(QueueCheckerService.class);
@@ -38,7 +42,9 @@ public class QueueCheckerService {
     public boolean ensureMinimumQueueSize(String username) {
         try {
             Queue queue = queueService.getQueueByUsername(username);
-            int currentSize = (queue.getSongs() == null) ? 0 : queue.getSongs().size();
+            // Access lazy-loaded collection within transaction
+            List<Song> songs = queue.getSongs();
+            int currentSize = (songs == null) ? 0 : songs.size();
             
             logger.info("Current queue size: {}", currentSize);
             
@@ -49,8 +55,9 @@ public class QueueCheckerService {
             
             int songsNeeded = MIN_QUEUE_SIZE - currentSize;
             logger.info("Queue needs {} more songs. Requesting from Bandcamp API...", songsNeeded);
-            
-            return requestSongsFromBandcamp(songsNeeded);
+
+
+            return requestSongsFromBandcamp(songsNeeded,username);
             
         } catch (Exception e) {
             logger.error("Error while checking queue size: {}", e.getMessage(), e);
@@ -64,12 +71,14 @@ public class QueueCheckerService {
      * @param count Number of songs to request
      * @return true if all requests were sent successfully, false otherwise
      */
-    private boolean requestSongsFromBandcamp(int count) {
+    private boolean requestSongsFromBandcamp(int count,String username) {
         boolean allSuccessful = true;
         
         for (int i = 0; i < count; i++) {
             try {
                 UUID songId = queueManagerService.newSong();
+            // useres song add
+                queueManagerService.addToUser(username,songId);
                 RequestRandomSong request = new RequestRandomSong(songId, DEFAULT_GENRE);
                 
                 kafkaProducerService.send("request-random-song", UUID.randomUUID(), request);

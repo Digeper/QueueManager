@@ -9,8 +9,10 @@ import org.springframework.stereotype.Repository;
 import java.util.UUID;
 
 @Repository
-public interface QueueRepository extends JpaRepository<Queue, User> {
+public interface QueueRepository extends JpaRepository<Queue, UUID> {
 
 
-    Queue getReferenceByUser_UserName(String username);
+    Queue findByUser_UserName(String username);
+
+
 }

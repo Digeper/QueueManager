@@ -34,8 +34,9 @@ public class SongService {
         songRepository.deleteById(uuid);
     }
 
-    public Song findByUUID(UUID uuid) {
-        return songRepository.findById(uuid).orElse(null);
+    public Song findByUUID(UUID songId) {
+        // Option A: Use JOIN FETCH to avoid lazy loading issues
+        return songRepository.findByIdWithUserSongs(songId) .orElseThrow(RuntimeException::new);
     }
 
     public void updateSongName(RequestSlskdSong requestSlskdSong) {

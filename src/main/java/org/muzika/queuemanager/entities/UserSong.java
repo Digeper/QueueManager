@@ -21,11 +21,11 @@ public class UserSong {
     @Column(name = "song_id")
     private UUID songId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "song_id", insertable = false, updatable = false)
     private Song song;
 
