@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,4 +28,7 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     @Override
     @Query("SELECT s FROM Song s WHERE s.id = :id")
     Optional<Song> findById(@Param("id") UUID id);
+    
+    @Query("SELECT s FROM Song s WHERE s.url IS NULL OR s.url = ''")
+    List<Song> findAllByUrlIsNullOrUrlIsEmpty();
 }

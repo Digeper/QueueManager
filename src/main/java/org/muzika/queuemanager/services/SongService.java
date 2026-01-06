@@ -8,6 +8,7 @@ import org.muzika.queuemanager.repository.SongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,5 +45,9 @@ public class SongService {
         song.setArtist(requestSlskdSong.getArtist());
         song.setTitle(requestSlskdSong.getTitle());
         songRepository.save(song);
+    }
+
+    public List<Song> findAllInvalidSongs() {
+        return songRepository.findAllByUrlIsNullOrUrlIsEmpty();
     }
 }

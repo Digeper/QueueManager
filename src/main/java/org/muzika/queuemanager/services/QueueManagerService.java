@@ -7,6 +7,8 @@ import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.entities.UserSong;
 import org.muzika.queuemanager.kafkaMassages.LoadedSong;
 import org.muzika.queuemanager.kafkaMassages.RequestSlskdSong;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +18,8 @@ import java.util.UUID;
 @Service
 @Transactional
 public class QueueManagerService {
+
+    private static final Logger log = LoggerFactory.getLogger(QueueManagerService.class);
 
     UserService userService;
     SongService songService;
@@ -37,6 +41,39 @@ public class QueueManagerService {
 
         }
 
+        cleanupInvalidSongs();
+    }
+
+    private void cleanupInvalidSongs() {
+        try {
+            List<Song> invalidSongs = songService.findAllInvalidSongs();
+            int cleanedCount = 0;
+
+            for (Song song : invalidSongs) {
+                try {
+                    UUID songId = song.getId();
+                    
+                    // Step 1: Remove from UserSongs (safe deletion order)
+                    userService.deleteAllUserSongsBySongId(songId);
+                    
+                    // Step 2: Remove from all Queues
+                    queueService.removeSongFromAllQueues(songId);
+                    
+                    // Step 3: Delete the Song entity
+                    songService.delete(songId);
+                    
+                    cleanedCount++;
+                } catch (Exception e) {
+                    log.warn("Error cleaning up song with ID {}: {}", song.getId(), e.getMessage());
+                }
+            }
+
+            if (cleanedCount > 0) {
+                log.info("Cleaned up {} invalid song(s) at startup", cleanedCount);
+            }
+        } catch (Exception e) {
+            log.warn("Error during startup cleanup of invalid songs: {}", e.getMessage());
+        }
     }
 
 

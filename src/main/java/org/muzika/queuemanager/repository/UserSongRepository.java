@@ -8,6 +8,7 @@ import org.muzika.queuemanager.entities.UserSongId;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 @Transactional
@@ -15,4 +16,6 @@ import java.util.UUID;
 public interface UserSongRepository extends JpaRepository<UserSong, UserSongId> {
 
     UserSong findBySongId(UUID uuid);
+    
+    List<UserSong> findAllBySongId(UUID songId);
 }

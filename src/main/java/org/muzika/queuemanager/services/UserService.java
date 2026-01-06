@@ -105,6 +105,11 @@ public class UserService {
         userSongRepository.delete(userSong);
     }
 
+    public void deleteAllUserSongsBySongId(UUID songId) {
+        List<UserSong> userSongs = userSongRepository.findAllBySongId(songId);
+        userSongRepository.deleteAll(userSongs);
+    }
+
     public User getUserBySongID(UUID uuid) {
         return userSongRepository.findBySongId(uuid).getUser();
     }

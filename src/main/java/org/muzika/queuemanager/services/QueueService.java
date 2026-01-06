@@ -135,4 +135,13 @@ public class QueueService {
         }
     }
 
+    public void removeSongFromAllQueues(UUID songId) {
+        List<User> allUsers = userService.getAllUsers();
+        for (User user : allUsers) {
+            if (user.getUserName() != null) {
+                removeSongFromQueue(user.getUserName(), songId);
+            }
+        }
+    }
+
 }
