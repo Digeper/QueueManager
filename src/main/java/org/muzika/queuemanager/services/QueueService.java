@@ -103,4 +103,18 @@ public class QueueService {
         queueRepository.save(queue);
     }
 
+    public void removeSongFromQueue(String username, UUID songId) {
+        Queue queue = getOrCreateQueue(username);
+        List<Song> songs = queue.getSongs();
+        
+        if (songs == null || songs.isEmpty()) {
+            // Queue is empty, nothing to remove
+            return;
+        }
+        
+        // Find and remove the song by ID
+        songs.removeIf(song -> song.getId().equals(songId));
+        queueRepository.save(queue);
+    }
+
 }

@@ -6,6 +6,7 @@ import org.muzika.queuemanager.entities.Queue;
 import org.muzika.queuemanager.entities.Song;
 import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.entities.UserSong;
+import org.muzika.queuemanager.entities.UserSongId;
 import org.muzika.queuemanager.repository.QueueRepository;
 import org.muzika.queuemanager.repository.SongRepository;
 import org.muzika.queuemanager.repository.UserRepository;
@@ -13,6 +14,7 @@ import org.muzika.queuemanager.repository.UserSongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,13 +28,15 @@ public class UserService {
     private final QueueRepository queueRepository;
     private final EntityManager entityManager;
     private final UserSongRepository userSongRepository;
+    private final SongService songService;
 
     @Autowired
-    public UserService(UserRepository userRepository, QueueRepository queueRepository, EntityManager entityManager, UserSongRepository userSongRepository) {
+    public UserService(UserRepository userRepository, QueueRepository queueRepository, EntityManager entityManager, UserSongRepository userSongRepository, SongService songService) {
         this.userRepository = userRepository;
         this.queueRepository = queueRepository;
         this.entityManager = entityManager;
         this.userSongRepository = userSongRepository;
+        this.songService = songService;
 
     }
 
@@ -107,5 +111,72 @@ public class UserService {
 
     public Song findSongById(UUID uuid) {
         return userSongRepository.findBySongId(uuid).getSong();
+    }
+
+    public void markSongAsSkipped(String username, UUID songId) {
+        User user = getUserByName(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        UserSongId userSongId = new UserSongId();
+        userSongId.setUserId(user.getUuid());
+        userSongId.setSongId(songId);
+
+        Optional<UserSong> userSongOpt = userSongRepository.findById(userSongId);
+        if (userSongOpt.isPresent()) {
+            UserSong userSong = userSongOpt.get();
+            userSong.setSkipped(true);
+            userSongRepository.save(userSong);
+        } else {
+            // UserSong doesn't exist, create it with skipped=true
+            Song song = songService.findByUUID(songId);
+            if (song == null) {
+                throw new IllegalArgumentException("Song not found: " + songId);
+            }
+            UserSong userSong = song.toUserSong(user);
+            userSong.setSkipped(true);
+            userSongRepository.save(userSong);
+        }
+    }
+
+    public void incrementSongListenCount(String username, UUID songId) {
+        User user = getUserByName(username);
+        if (user == null) {
+            throw new IllegalArgumentException("User not found: " + username);
+        }
+
+        UserSongId userSongId = new UserSongId();
+        userSongId.setUserId(user.getUuid());
+        userSongId.setSongId(songId);
+
+        Optional<UserSong> userSongOpt = userSongRepository.findById(userSongId);
+        if (userSongOpt.isPresent()) {
+            UserSong userSong = userSongOpt.get();
+            // Increment listen count
+            int currentCount = userSong.getListenCount() != null ? userSong.getListenCount() : 0;
+            userSong.setListenCount(currentCount + 1);
+            
+            // Update timestamps
+            LocalDateTime now = LocalDateTime.now();
+            if (userSong.getFirstListen() == null) {
+                userSong.setFirstListen(now);
+            }
+            userSong.setLastListen(now);
+            
+            userSongRepository.save(userSong);
+        } else {
+            // UserSong doesn't exist, create it with listen count 1
+            Song song = songService.findByUUID(songId);
+            if (song == null) {
+                throw new IllegalArgumentException("Song not found: " + songId);
+            }
+            UserSong userSong = song.toUserSong(user);
+            userSong.setListenCount(1);
+            LocalDateTime now = LocalDateTime.now();
+            userSong.setFirstListen(now);
+            userSong.setLastListen(now);
+            userSongRepository.save(userSong);
+        }
     }
 }

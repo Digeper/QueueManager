@@ -13,6 +13,8 @@ schemes:
 tags:
   - name: queue
     description: Queue management endpoints
+  - name: songs
+    description: Song retrieval endpoints
 paths:
   /queue:
     get:
@@ -58,6 +60,126 @@ paths:
             $ref: "#/definitions/Error"
         "404":
           description: Song not found
+          schema:
+            $ref: "#/definitions/Error"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/Error"
+  /queue/skipped:
+    post:
+      tags:
+        - queue
+      summary: Mark song as skipped
+      description: Mark a song as skipped, remove it from the queue, and refill the queue to minimum size
+      operationId: markSongAsSkipped
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Song ID to mark as skipped
+          required: true
+          schema:
+            $ref: "#/definitions/SongIdRequest"
+      responses:
+        "200":
+          description: Song marked as skipped successfully
+        "400":
+          description: Bad request (missing song ID, song not found)
+          schema:
+            $ref: "#/definitions/Error"
+        "401":
+          description: Unauthorized - user not authenticated
+          schema:
+            $ref: "#/definitions/Error"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/Error"
+  /queue/finished:
+    post:
+      tags:
+        - queue
+      summary: Mark song as finished
+      description: Mark a song as finished (increment listen count), remove it from the queue, and refill the queue to minimum size
+      operationId: markSongAsFinished
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: Song ID to mark as finished
+          required: true
+          schema:
+            $ref: "#/definitions/SongIdRequest"
+      responses:
+        "200":
+          description: Song marked as finished successfully
+        "400":
+          description: Bad request (missing song ID, song not found)
+          schema:
+            $ref: "#/definitions/Error"
+        "401":
+          description: Unauthorized - user not authenticated
+          schema:
+            $ref: "#/definitions/Error"
+        "500":
+          description: Internal server error
+          schema:
+            $ref: "#/definitions/Error"
+  /songs/{id}:
+    get:
+      tags:
+        - songs
+      summary: Get song file
+      description: Retrieve and stream a song file by its ID
+      operationId: getSong
+      produces:
+        - audio/mpeg
+        - audio/flac
+        - audio/wav
+        - audio/aiff
+        - audio/mp4
+        - audio/ogg
+        - audio/x-ms-wma
+        - application/octet-stream
+      parameters:
+        - in: path
+          name: id
+          description: Unique identifier for the song
+          required: true
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        "200":
+          description: Song file retrieved successfully
+          headers:
+            Content-Type:
+              type: string
+              description: MIME type of the audio file
+            Content-Length:
+              type: integer
+              format: int64
+              description: Size of the file in bytes
+            Accept-Ranges:
+              type: string
+              description: Indicates support for partial content requests
+              example: "bytes"
+            Content-Disposition:
+              type: string
+              description: Suggests filename for download
+        "401":
+          description: Unauthorized - user not authenticated
+          schema:
+            $ref: "#/definitions/Error"
+        "404":
+          description: Song or file not found
           schema:
             $ref: "#/definitions/Error"
         "500":
@@ -194,6 +316,16 @@ definitions:
     required:
       - songId
       - position
+  SongIdRequest:
+    type: object
+    properties:
+      songId:
+        type: string
+        format: uuid
+        description: Unique identifier for the song
+        example: "550e8400-e29b-41d4-a716-446655440000"
+    required:
+      - songId
   QueueResponse:
     type: object
     properties:
