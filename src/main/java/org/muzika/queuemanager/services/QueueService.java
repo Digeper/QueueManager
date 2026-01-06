@@ -112,9 +112,27 @@ public class QueueService {
             return;
         }
         
-        // Find and remove the song by ID
-        songs.removeIf(song -> song.getId().equals(songId));
-        queueRepository.save(queue);
+        // Create a new list containing all songs except the one to remove
+        // This approach replaces the entire collection, avoiding Hibernate's position update mechanism
+        // that causes constraint violations
+        List<Song> updatedSongs = new ArrayList<>();
+        boolean found = false;
+        
+        for (Song song : songs) {
+            if (!song.getId().equals(songId)) {
+                updatedSongs.add(song);
+            } else {
+                found = true;
+            }
+        }
+        
+        // Only update if the song was found in the queue
+        if (found) {
+            // Replace the entire collection with the new list
+            // This forces Hibernate to replace all entries rather than updating positions
+            queue.setSongs(updatedSongs);
+            queueRepository.save(queue);
+        }
     }
 
 }

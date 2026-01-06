@@ -45,6 +45,9 @@ class QueueControllerSongTest {
     private FileStorageService fileStorageService;
 
     @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @TempDir
