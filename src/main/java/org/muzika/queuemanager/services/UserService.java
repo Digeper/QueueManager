@@ -6,6 +6,8 @@ import org.muzika.queuemanager.entities.Song;
 import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.entities.UserSong;
 import org.muzika.queuemanager.entities.UserSongId;
+import org.muzika.queuemanager.kafkaMassages.LikedSongEvent;
+import org.muzika.queuemanager.kafkaMassages.UnlikedSongEvent;
 import org.muzika.queuemanager.repository.QueueRepository;
 import org.muzika.queuemanager.repository.QueueSongRepository;
 import org.muzika.queuemanager.repository.UserRepository;
@@ -26,14 +28,16 @@ public class UserService {
     private final UserSongRepository userSongRepository;
 
     private final SongService songService;
+    private final KafkaProducerService kafkaProducerService;
 
     @Autowired
-    public UserService(UserRepository userRepository, QueueRepository queueRepository, UserSongRepository userSongRepository, SongService songService) {
+    public UserService(UserRepository userRepository, QueueRepository queueRepository, UserSongRepository userSongRepository, SongService songService, KafkaProducerService kafkaProducerService) {
 
         this.userRepository = userRepository;
         this.queueRepository = queueRepository;
         this.userSongRepository = userSongRepository;
         this.songService = songService;
+        this.kafkaProducerService = kafkaProducerService;
     }
 
     public User saveUser(User user) {
@@ -200,6 +204,11 @@ public class UserService {
             userSong.setLiked(true);
             userSongRepository.save(userSong);
         }
+
+        // Send Kafka event - use userId (auth userId) not uuid (auto-generated PK)
+        UUID authUserId = user.getUserId() != null ? user.getUserId() : user.getUuid();
+        LikedSongEvent event = new LikedSongEvent(authUserId, username, songId);
+        kafkaProducerService.sendLikedSongEvent("liked", authUserId, event);
     }
 
     public void markSongAsUnliked(String username, UUID songId) {
@@ -227,6 +236,11 @@ public class UserService {
             userSong.setLiked(false);
             userSongRepository.save(userSong);
         }
+
+        // Send Kafka event - use userId (auth userId) not uuid (auto-generated PK)
+        UUID authUserId = user.getUserId() != null ? user.getUserId() : user.getUuid();
+        UnlikedSongEvent event = new UnlikedSongEvent(authUserId, username, songId);
+        kafkaProducerService.sendUnlikedSongEvent("unliked", authUserId, event);
     }
 
     public boolean isSongLiked(String username, UUID songId) {
