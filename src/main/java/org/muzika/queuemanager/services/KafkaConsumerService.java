@@ -69,7 +69,7 @@ public class KafkaConsumerService {
 
     }
 
-    @KafkaListener(topics = {"user-created"}, groupId = "group-id", containerFactory = "userCreatedListenerContainerFactory")
+    @KafkaListener(topics = {"user-created"}, groupId = "queue-manager-group", containerFactory = "userCreatedListenerContainerFactory")
     public void consumeUserCreatedEvent(UserCreatedEvent event) {
         log.info("Received user created event: userId={}, username={}", event.getUserId(), event.getUsername());
         try {
