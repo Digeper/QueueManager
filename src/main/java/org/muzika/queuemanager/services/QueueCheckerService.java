@@ -39,21 +39,23 @@ public class QueueCheckerService {
      * @return true if the check completed successfully (queue has enough songs or requests were sent)
      *         false if an error occurred
      */
-    public boolean ensureMinimumQueueSize(String username) {
+    public boolean ensureMinimumQueueSize(String username, int i, int i1) {
         try {
+
             Queue queue = queueService.getQueueByUsername(username);
             // Access lazy-loaded collection within transaction
-            List<Song> songs = queue.getSongs();
-            int currentSize = (songs == null) ? 0 : songs.size();
+            List<org.muzika.queuemanager.entities.QueueSong> queueSongs = queue.getQueueSongs();
+            int currentSize = (queueSongs == null) ? 0 : queueSongs.size();
             
             logger.info("Current queue size: {}", currentSize);
             
-            if (currentSize >= MIN_QUEUE_SIZE) {
+            if (currentSize >= i) {
                 logger.info("Queue has {} songs, which meets the minimum requirement of {}", currentSize, MIN_QUEUE_SIZE);
                 return true;
             }
             
-            int songsNeeded = MIN_QUEUE_SIZE - currentSize;
+            int songsNeeded = i - currentSize;
+            songsNeeded = Math.min(songsNeeded,i1);
             logger.info("Queue needs {} more songs. Requesting from Bandcamp API...", songsNeeded);
 
 
@@ -100,5 +102,7 @@ public class QueueCheckerService {
         
         return allSuccessful;
     }
+
+
 }
 

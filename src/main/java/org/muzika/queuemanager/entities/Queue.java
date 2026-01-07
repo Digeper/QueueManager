@@ -12,8 +12,8 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@ToString(exclude = {"user", "songs"})
-@EqualsAndHashCode(exclude = {"user", "songs"})
+@ToString(exclude = {"user", "queueSongs"})
+@EqualsAndHashCode(exclude = {"user", "queueSongs"})
 @Entity
 @Table(name = "queue")
 public class Queue {
@@ -39,17 +39,9 @@ public class Queue {
         }
     }
 
-    @OneToMany(cascade={CascadeType.PERSIST, CascadeType.REFRESH, CascadeType.MERGE},
-            fetch=FetchType.LAZY)
-    @JoinTable(
-            name = "queue_songs",
-            joinColumns = {
-                @JoinColumn(name = "queue_user_uuid", referencedColumnName = "user_uuid"),
-                @JoinColumn(name = "queue_uuid", referencedColumnName = "uuid")
-            },
-            inverseJoinColumns = @JoinColumn(name = "songs_id", referencedColumnName = "id")
-    )
-    @OrderColumn(name = "position")
-    private List<Song> songs = new ArrayList<>();
+    @OneToMany(mappedBy = "queue", cascade={CascadeType.PERSIST, CascadeType.REFRESH, CascadeType.MERGE, CascadeType.REMOVE},
+            fetch=FetchType.EAGER)
+    @OrderBy("position ASC")
+    private List<QueueSong> queueSongs = new ArrayList<>();
 
 }

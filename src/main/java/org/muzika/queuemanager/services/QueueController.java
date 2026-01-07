@@ -59,29 +59,37 @@ public class QueueController {
         log.debug("Get queue{}", getAuthenticatedUsername());
         try {
             String username = getAuthenticatedUsername();
-            Queue queue = queueService.getOrCreateQueue(username);
+            Queue queue = userService.getUserByName(username).getUserQueue();
             if (queue == null) {
                 log.error("Queue {} not found", getAuthenticatedUsername());
             }
             
-            if (queue == null || queue.getSongs() == null || queue.getSongs().isEmpty()) {
+            List<org.muzika.queuemanager.entities.QueueSong> queueSongs = queue.getQueueSongs();
+            if (queue == null || queueSongs == null || queueSongs.isEmpty()) {
                 QueueResponse response = new QueueResponse();
-                java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username);});
+                java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username,10,10);});
                 response.setSongs(new ArrayList<>());
                 return ResponseEntity.ok(response);
             }
             
             List<SongDTO> songDTOs = new ArrayList<>();
-            for (Song song : queue.getSongs()) {
-                SongDTO songDTO = convertToDTO(song);
-                songDTOs.add(songDTO);
+            for (org.muzika.queuemanager.entities.QueueSong queueSong : queueSongs) {
+                Song song = queueSong.getSong();
+                if (song != null) {
+                    SongDTO songDTO = convertToDTO(song);
+                    // Include queue entry ID for tracking specific instances
+                    songDTO.setQueueEntryId(queueSong.getId());
+                    songDTOs.add(songDTO);
+                }
             }
             
             QueueResponse response = new QueueResponse();
             response.setSongs(songDTOs);
+            java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username,10,10);});
             return ResponseEntity.ok(response);
         } catch (Exception e) {
 
+            log.error(e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
@@ -114,7 +122,7 @@ public class QueueController {
     public ResponseEntity<?> checkAndRefillQueue() {
         try {
             String username = getAuthenticatedUsername();
-            boolean success = queueCheckerService.ensureMinimumQueueSize(username);
+            boolean success = queueCheckerService.ensureMinimumQueueSize(username,10,10);
             if (success) {
                 return ResponseEntity.ok().body("Queue check completed successfully");
             } else {
@@ -143,11 +151,15 @@ public class QueueController {
             // Mark song as skipped in UserSong
             userService.markSongAsSkipped(username, songId);
             
-            // Remove song from queue
-            queueService.removeSongFromQueue(username, songId);
+            // Remove song from queue - use queueEntryId if provided, otherwise remove first match
+            if (request.getQueueEntryId() != null) {
+                queueService.removeQueueEntry(username, request.getQueueEntryId());
+            } else {
+                queueService.removeSongFromQueue(username, songId);
+            }
             
             // Refill queue to ensure minimum size
-            queueCheckerService.ensureMinimumQueueSize(username);
+            java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username,10,10);});
             
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
@@ -174,12 +186,17 @@ public class QueueController {
             // Increment listen count in UserSong
             userService.incrementSongListenCount(username, songId);
             
-            // Remove song from queue
-            queueService.removeSongFromQueue(username, songId);
+            // Remove song from queue - use queueEntryId if provided, otherwise remove first match
+            if (request.getQueueEntryId() != null) {
+                queueService.removeQueueEntry(username, request.getQueueEntryId());
+            } else {
+                queueService.removeSongFromQueue(username, songId);
+            }
             
             // Refill queue to ensure minimum size
-            queueCheckerService.ensureMinimumQueueSize(username);
-            
+            java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username,10,10);});
+
+
             return ResponseEntity.ok().build();
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());

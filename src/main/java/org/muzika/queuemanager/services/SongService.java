@@ -8,8 +8,10 @@ import org.muzika.queuemanager.repository.SongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -49,5 +51,38 @@ public class SongService {
 
     public List<Song> findAllInvalidSongs() {
         return songRepository.findAllByUrlIsNullOrUrlIsEmpty();
+    }
+
+    /**
+     * Returns a list of random songs that have a URL.
+     * 
+     * @param limit Optional limit for the number of songs to return. 
+     *              If null or 0, returns all songs with URLs.
+     * @return List of random songs that have a URL
+     */
+    public List<Song> getRandomSongsWithUrl(Integer limit) {
+        List<Song> songsWithUrl = songRepository.findAllByUrlIsNotNull();
+        Collections.shuffle(songsWithUrl);
+        
+        if (limit != null && limit > 0 && limit < songsWithUrl.size()) {
+            return songsWithUrl.stream()
+                    .limit(limit)
+                    .collect(Collectors.toList());
+        }
+        
+        return songsWithUrl;
+    }
+
+    /**
+     * Returns all random songs that have a URL (no limit).
+     * 
+     * @return List of random songs that have a URL
+     */
+    public List<Song> getRandomSongsWithUrl() {
+        return getRandomSongsWithUrl(null);
+    }
+
+    public Song findSongById(UUID uuid) {
+        return songRepository.findById(uuid) .orElseThrow(RuntimeException::new);
     }
 }

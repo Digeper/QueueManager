@@ -27,6 +27,9 @@ public class User {
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "user")
     private Queue userQueue;
 
+    private UUID userId;
+
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<UserSong> songs;
 
@@ -35,5 +38,6 @@ public class User {
         uuid = userI;
         userName = username;
     }
+
 }
 

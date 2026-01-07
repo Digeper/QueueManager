@@ -31,4 +31,7 @@ public interface SongRepository extends JpaRepository<Song, UUID> {
     
     @Query("SELECT s FROM Song s WHERE s.url IS NULL OR s.url = ''")
     List<Song> findAllByUrlIsNullOrUrlIsEmpty();
+    
+    @Query("SELECT s FROM Song s WHERE s.url IS NOT NULL AND s.url != ''")
+    List<Song> findAllByUrlIsNotNull();
 }

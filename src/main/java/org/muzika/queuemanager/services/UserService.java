@@ -1,6 +1,5 @@
 package org.muzika.queuemanager.services;
 
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 import org.muzika.queuemanager.entities.Queue;
 import org.muzika.queuemanager.entities.Song;
@@ -8,16 +7,14 @@ import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.entities.UserSong;
 import org.muzika.queuemanager.entities.UserSongId;
 import org.muzika.queuemanager.repository.QueueRepository;
-import org.muzika.queuemanager.repository.SongRepository;
+import org.muzika.queuemanager.repository.QueueSongRepository;
 import org.muzika.queuemanager.repository.UserRepository;
 import org.muzika.queuemanager.repository.UserSongRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
@@ -26,18 +23,17 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final QueueRepository queueRepository;
-    private final EntityManager entityManager;
     private final UserSongRepository userSongRepository;
+
     private final SongService songService;
 
     @Autowired
-    public UserService(UserRepository userRepository, QueueRepository queueRepository, EntityManager entityManager, UserSongRepository userSongRepository, SongService songService) {
+    public UserService(UserRepository userRepository, QueueRepository queueRepository, UserSongRepository userSongRepository, SongService songService) {
+
         this.userRepository = userRepository;
         this.queueRepository = queueRepository;
-        this.entityManager = entityManager;
         this.userSongRepository = userSongRepository;
         this.songService = songService;
-
     }
 
     public User saveUser(User user) {
@@ -72,25 +68,21 @@ public class UserService {
             return userRepository.findById(userId).orElseThrow();
         }
 
-        // Create new user with specific UUID and username
-        // Set uuid (primary key) directly
-        User user = new User();
-        user.setUuid(userId);  // Set the primary key UUID
-        user.setUserName(username);
-        user = entityManager.merge(user);  // Use merge to handle pre-set UUID
-        entityManager.flush();
 
-        // Create and associate Queue
-        // IMPORTANT: Don't set songs here - let it be null to avoid PersistentBag error
-        // It will be initialized when first accessed (as QueueService does)
+        User user = new User();
+        user.setUserId(userId);
+        user.setUserName(username);
+        user = userRepository.save(user);
+
         Queue queue = new Queue();
         queue.setUser(user);
-        // Set uuid to match userUuid (will be set by @MapsId, but ensure uuid is also set)
         queue.setUuid(user.getUuid());
-        // Don't set songs - leave it null, Hibernate will handle it
         queue = queueRepository.save(queue);
+
+
         user.setUserQueue(queue);
-        user = userRepository.save(user);
+        userRepository.save(user);
+
 
         return user;
     }
@@ -114,9 +106,7 @@ public class UserService {
         return userSongRepository.findBySongId(uuid).getUser();
     }
 
-    public Song findSongById(UUID uuid) {
-        return userSongRepository.findBySongId(uuid).getSong();
-    }
+
 
     public void markSongAsSkipped(String username, UUID songId) {
         User user = getUserByName(username);
@@ -257,5 +247,28 @@ public class UserService {
             // UserSong doesn't exist, default to false
             return false;
         }
+    }
+
+    public void loadInitalQueue(UUID userId, String username, List<Song> songs) {
+        User user = getUserByName(username);
+        ArrayList<UserSong> userSongs = new ArrayList<>();
+        for (Song song : songs) {
+            userSongs.add(song.toUserSong(user));
+
+        }
+        user.setSongs(userSongs);
+        userRepository.save(user);
+
+
+    }
+
+    public List<Song> getAllUserSongs(String username) {
+        User user = userRepository.findByUserName(username);
+        List<UserSong> userSongs= user.getSongs();
+        ArrayList<Song> songs = new ArrayList<>();
+        for (UserSong userSong : userSongs) {
+            songs.add(userSong.getSong());
+        }
+        return songs;
     }
 }

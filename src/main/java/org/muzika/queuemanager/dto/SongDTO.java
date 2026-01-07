@@ -13,5 +13,7 @@ public class SongDTO {
     private String genre;
     private Long duration;
     private String url;
+    // Optional queue entry ID - only present when returned as part of a queue
+    private UUID queueEntryId;
 }
 

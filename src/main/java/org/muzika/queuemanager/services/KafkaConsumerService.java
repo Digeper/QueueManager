@@ -2,6 +2,7 @@ package org.muzika.queuemanager.services;
 
 
 import lombok.extern.slf4j.Slf4j;
+import org.muzika.queuemanager.entities.Song;
 import org.muzika.queuemanager.entities.User;
 import org.muzika.queuemanager.kafkaMassages.LoadedSong;
 import org.muzika.queuemanager.kafkaMassages.RequestSlskdSong;
@@ -9,7 +10,9 @@ import org.muzika.queuemanager.kafkaMassages.UserCreatedEvent;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Component
 @Slf4j
@@ -20,11 +23,15 @@ public class KafkaConsumerService {
     QueueManagerService  queueManagerService;
     QueueCheckerService queueCheckerService;
     UserService userService;
+    SongService songService;
+    QueueService queueService;
 
-    public KafkaConsumerService(QueueManagerService queueManagerService, QueueCheckerService queueCheckerService, UserService userService) {
+    public KafkaConsumerService(QueueManagerService queueManagerService, QueueCheckerService queueCheckerService, UserService userService, SongService songService, QueueService queueService) {
         this.queueManagerService = queueManagerService;
         this.queueCheckerService = queueCheckerService;
         this.userService = userService;
+        this.songService = songService;
+        this.queueService =  queueService;
     }
 
 
@@ -43,7 +50,7 @@ public class KafkaConsumerService {
 
                 username = queueManagerService.delete(loadedSong);
             }
-            queueCheckerService.ensureMinimumQueueSize(username);
+            java.util.concurrent.CompletableFuture<Boolean>  future= CompletableFuture.supplyAsync(()-> {return queueCheckerService.ensureMinimumQueueSize(username,10,1);});
         }catch (Exception e){
             log.info("song might be missing {} {}",e,loadedSong.getUuid());
         }
@@ -65,13 +72,33 @@ public class KafkaConsumerService {
     @KafkaListener(topics = {"user-created"}, groupId = "group-id", containerFactory = "userCreatedListenerContainerFactory")
     public void consumeUserCreatedEvent(UserCreatedEvent event) {
         log.info("Received user created event: userId={}, username={}", event.getUserId(), event.getUsername());
-
         try {
-            userService.createUserFromEvent(event.getUserId(), event.getUsername());
-            log.info("Successfully created user in QueueManager: userId={}, username={}", event.getUserId(), event.getUsername());
-        } catch (Exception e) {
-            log.error("Failed to create user from event: userId={}, username={}, error={}", 
-                    event.getUserId(), event.getUsername(), e.getMessage(), e);
+            userService.getUserIdByUsername(event.getUsername());
+        }catch (Exception e1){
+            try {
+                userService.createUserFromEvent(event.getUserId(), event.getUsername());
+                log.info("Successfully created user in QueueManager: userId={}, username={}", event.getUserId(), event.getUsername());
+            } catch (Exception e) {
+                log.error("Failed to create user from event: userId={}, username={}, error={}",
+                        event.getUserId(), event.getUsername(), e.getMessage(), e);
+            }
+            List<Song> songs = songService.getRandomSongsWithUrl(10);
+            try {
+                userService.loadInitalQueue(event.getUserId(), event.getUsername(),songs);
+            } catch (Exception e) {
+                log.error("faild to load queqe {}",e);
+            }
+            songs = userService.getAllUserSongs(event.getUsername());
+            try {
+                for (Song song : songs) {
+                    queueService.addToQueue(song.getId(), event.getUsername());
+                }
+            }catch (Exception e){
+                log.error("faild to load queqe {}",e);
+            }
         }
+
+
+
     }
 }

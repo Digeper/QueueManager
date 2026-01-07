@@ -29,6 +29,11 @@ public class Song {
     @EqualsAndHashCode.Exclude  // Exclude from equals/hashCode
     private List<UserSong> userSongs = new ArrayList<>();
 
+    @OneToMany(mappedBy = "song", cascade = CascadeType.MERGE)
+    @ToString.Exclude  // Exclude from toString
+    @EqualsAndHashCode.Exclude  // Exclude from equals/hashCode
+    private List<QueueSong> queueSongs = new ArrayList<>();
+
     // Custom toString() without circular reference
     @Override
     public String toString() {

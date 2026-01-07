@@ -88,9 +88,9 @@ public class QueueManagerService {
 
     public String songLoaded(LoadedSong loadedSong) {
         songService.updateSongPath(loadedSong.getUuid(),loadedSong.getFilePath());
-
-        queueService.addToQueue(loadedSong.getUuid());
-        return userService.getUserBySongID(loadedSong.getUuid()).getUserName();
+        String user = userService.getUserBySongID(loadedSong.getUuid()).getUserName();
+        queueService.addToQueue(loadedSong.getUuid(),user);
+        return user;
     }
 
     public String delete(LoadedSong loadedSong) {
