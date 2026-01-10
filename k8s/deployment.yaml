@@ -28,6 +28,13 @@ spec:
         app.kubernetes.io/part-of: muzika-platform
     spec:
       serviceAccountName: queuemanager-sa
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: virtual-kubelet.io/provider
+                    operator: DoesNotExist
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
@@ -61,7 +68,7 @@ spec:
           resources:
             requests:
               memory: "256Mi"
-              cpu: "100m"
+              cpu: "50m"
             limits:
               memory: "512Mi"
               cpu: "500m"
