@@ -320,8 +320,15 @@ jobs:
           
           cd "$K8S_DIR"
           
-          # Apply StorageClass
-          kubectl apply -f storageclass.yaml
+          # Apply StorageClass - check if it exists first
+          # StorageClass parameters and reclaimPolicy cannot be updated, so we create it only if it doesn't exist
+          if kubectl get storageclass azurefile-csi > /dev/null 2>&1; then
+            echo "StorageClass azurefile-csi already exists, skipping creation"
+            echo "Note: If you need to update it, delete it first: kubectl delete storageclass azurefile-csi"
+          else
+            echo "Creating StorageClass azurefile-csi..."
+            kubectl apply -f storageclass.yaml
+          fi
           
           # Apply PVCs (for reference, actual mounts use inline volumes)
           kubectl apply -f persistentvolumeclaims.yaml
