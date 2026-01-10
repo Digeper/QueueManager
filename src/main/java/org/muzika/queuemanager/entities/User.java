@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Data
 @Entity
-@Table(name = "users")
+@Table(name = "queue_users")
 @NoArgsConstructor
 @ToString(exclude = {"userQueue", "songs"})
 @EqualsAndHashCode(exclude = {"userQueue", "songs"})
