@@ -20,13 +20,16 @@ public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "uuid")
     private UUID uuid;
 
+    @Column(name = "user_name")
     private String userName;
 
     @OneToOne(fetch = FetchType.LAZY, mappedBy = "user")
     private Queue userQueue;
 
+    @Column(name = "user_id", nullable = true)
     private UUID userId;
 
 
