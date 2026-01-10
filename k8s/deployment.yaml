@@ -1,0 +1,122 @@
+# Deployment for QueueManager service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: queuemanager
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: muzika-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: queuemanager
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: queuemanager
+        app.kubernetes.io/name: queuemanager
+        app.kubernetes.io/component: backend
+        app.kubernetes.io/part-of: muzika-platform
+    spec:
+      serviceAccountName: queuemanager-sa
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+      containers:
+        - name: queuemanager
+          image: ${ACR_NAME}.azurecr.io/muzika/queuemanager:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8090
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: queuemanager-config
+            - secretRef:
+                name: queuemanager-secrets
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+          volumeMounts:
+            - name: secrets-store
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+            - name: azure-file-database
+              mountPath: "/mnt/azfiles/database"
+            - name: azure-file-downloads
+              mountPath: "/mnt/azfiles/downloads"
+            - name: azure-file-incomplete
+              mountPath: "/mnt/azfiles/incomplete"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            tcpSocket:
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 40
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: queuemanager-azure-keyvault
+        - name: azure-file-database
+          csi:
+            driver: file.csi.azure.com
+            volumeAttributes:
+              shareName: slskd-database
+              secretName: azure-storage-secret
+              secretNamespace: muzika
+        - name: azure-file-downloads
+          csi:
+            driver: file.csi.azure.com
+            volumeAttributes:
+              shareName: slskd-downloads
+              secretName: azure-storage-secret
+              secretNamespace: muzika
+        - name: azure-file-incomplete
+          csi:
+            driver: file.csi.azure.com
+            volumeAttributes:
+              shareName: slskd-incomplete
+              secretName: azure-storage-secret
+              secretNamespace: muzika

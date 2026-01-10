@@ -28,6 +28,11 @@
     </scm>
     <properties>
         <java.version>17</java.version>
+        <jib-maven-plugin.version>3.4.6</jib-maven-plugin.version>
+        <!-- ACR_NAME should be replaced with your Azure Container Registry name -->
+        <docker.image.registry>${env.ACR_NAME}.azurecr.io</docker.image.registry>
+        <docker.image.name>muzika/queuemanager</docker.image.name>
+        <docker.image.tag>${project.version}</docker.image.tag>
     </properties>
     <dependencies>
         <dependency>
@@ -76,9 +81,9 @@
 
         </dependency>
         <dependency>
-            <groupId>com.mysql</groupId>
-            <artifactId>mysql-connector-j</artifactId>
-            <version>9.5.0</version>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -135,6 +140,39 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                </configuration>
+            </plugin>
+            <!-- Jib Maven Plugin for containerization -->
+            <plugin>
+                <groupId>com.google.cloud.tools</groupId>
+                <artifactId>jib-maven-plugin</artifactId>
+                <version>${jib-maven-plugin.version}</version>
+                <configuration>
+                    <from>
+                        <image>eclipse-temurin:17-jre</image>
+                    </from>
+                    <to>
+                        <image>${docker.image.registry}/${docker.image.name}:${docker.image.tag}</image>
+                        <tags>
+                            <tag>latest</tag>
+                            <tag>${project.version}</tag>
+                        </tags>
+                    </to>
+                    <container>
+                        <ports>
+                            <port>8090</port>
+                        </ports>
+                        <environment>
+                            <SPRING_PROFILES_ACTIVE>k8s</SPRING_PROFILES_ACTIVE>
+                        </environment>
+                        <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+                        <jvmFlags>
+                            <jvmFlag>-Xms256m</jvmFlag>
+                            <jvmFlag>-Xmx512m</jvmFlag>
+                            <jvmFlag>-XX:+UseG1GC</jvmFlag>
+                            <jvmFlag>-XX:+UseContainerSupport</jvmFlag>
+                        </jvmFlags>
+                    </container>
                 </configuration>
             </plugin>
         </plugins>

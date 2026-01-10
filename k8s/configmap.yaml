@@ -1,0 +1,36 @@
+# ConfigMap for QueueManager non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: queuemanager-config
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: config
+    app.kubernetes.io/part-of: muzika-platform
+data:
+  # Application Configuration
+  SPRING_PROFILES_ACTIVE: "k8s"
+  SERVER_PORT: "8090"
+  
+  # Kafka Configuration
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-cluster-kafka-bootstrap.kafka.svc.cluster.local:9092"
+  
+  # JWT Configuration (expiration only - secret is in Key Vault)
+  JWT_EXPIRATION: "86400000"
+  
+  # Music Storage Configuration
+  MUSIC_STORAGE_BASE_PATH: "/mnt/azfiles/downloads"
+  
+  # JPA/Hibernate Configuration
+  SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+  SPRING_JPA_SHOW_SQL: "false"
+  # Hibernate will automatically:
+  # - Create tables if they don't exist
+  # - Update schema when entities change
+  # - Keep existing data (update mode)
+  
+  # Logging Configuration
+  LOGGING_LEVEL_ROOT: "INFO"
+  LOGGING_LEVEL_ORG_MUZIKA: "INFO"

@@ -1,0 +1,64 @@
+# PersistentVolumeClaims for Azure File Shares
+# Note: For existing Azure File Shares, we'll use inline CSI volumes in the deployment
+# These PVCs are kept for reference but the deployment will use inline volumes
+# to reference the existing shares: slskd-database, slskd-downloads, slskd-incomplete
+
+---
+# PVC for slskd-database file share (for reference - deployment uses inline volume)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: queuemanager-database-pvc
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: muzika-platform
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-csi
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# PVC for slskd-downloads file share (for reference - deployment uses inline volume)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: queuemanager-downloads-pvc
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: muzika-platform
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-csi
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# PVC for slskd-incomplete file share (for reference - deployment uses inline volume)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: queuemanager-incomplete-pvc
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: storage
+    app.kubernetes.io/part-of: muzika-platform
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: azurefile-csi
+  resources:
+    requests:
+      storage: 100Gi

@@ -1,0 +1,22 @@
+# StorageClass for Azure File Shares
+# Used to provision PersistentVolumes from existing Azure File Shares
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: azurefile-csi
+  namespace: muzika
+  labels:
+    app.kubernetes.io/part-of: muzika-platform
+provisioner: file.csi.azure.com
+allowVolumeExpansion: true
+parameters:
+  skuName: Premium_LRS
+  # Storage account name - must match the secret
+  storageAccount: digeper
+  # Secret name and namespace
+  secretName: azure-storage-secret
+  secretNamespace: muzika
+  # For existing shares, we specify shareName in PVC
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
+allowVolumeExpansion: true

@@ -1,0 +1,20 @@
+# Service for QueueManager
+apiVersion: v1
+kind: Service
+metadata:
+  name: queuemanager
+  namespace: muzika
+  labels:
+    app: queuemanager
+    app.kubernetes.io/name: queuemanager
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/part-of: muzika-platform
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+      protocol: TCP
+  selector:
+    app: queuemanager
