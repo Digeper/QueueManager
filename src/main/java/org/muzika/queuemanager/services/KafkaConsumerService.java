@@ -32,7 +32,6 @@ public class KafkaConsumerService {
         this.userService = userService;
         this.songService = songService;
         this.queueService =  queueService;
-        log.info("KafkaConsumerService initialized - listening for user-created events on topic: user-created");
     }
 
 
@@ -72,13 +71,7 @@ public class KafkaConsumerService {
 
     @KafkaListener(topics = {"user-created"}, groupId = "queue-manager-group", containerFactory = "userCreatedListenerContainerFactory")
     public void consumeUserCreatedEvent(UserCreatedEvent event) {
-        log.info("=== RECEIVED USER CREATED EVENT ===");
-        if (event == null) {
-            log.error("Received null UserCreatedEvent - this should not happen!");
-            return;
-        }
-        log.info("Event details: userId={}, username={}", event.getUserId(), event.getUsername());
-        log.info("Event object: {}", event);
+        log.info("Received user created event: userId={}, username={}", event.getUserId(), event.getUsername());
         try {
             // Check if user already exists
             userService.getUserIdByUsername(event.getUsername());

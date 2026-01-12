@@ -16,10 +16,7 @@ import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.listener.CommonErrorHandler;
-import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
-import org.springframework.util.backoff.FixedBackOff;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -28,8 +25,6 @@ import java.util.UUID;
 @EnableKafka
 @Configuration
 public class KafkaConsumerConfig {
-
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(KafkaConsumerConfig.class);
 
     @Value("${spring.kafka.bootstrap-servers:localhost:9092}")
     private String bootstrapServers;
@@ -61,10 +56,6 @@ public class KafkaConsumerConfig {
         props.put(JsonDeserializer.USE_TYPE_INFO_HEADERS, false);
         props.put(JsonDeserializer.TRUSTED_PACKAGES, "org.muzika.queuemanager.kafkaMassages,org.muzika.authorizationmanager.kafkaMessages");
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        
-        log.info("Configuring user-created consumer factory with bootstrap servers: {}, groupId: queue-manager-group", bootstrapServers);
-        log.info("Trusted packages: org.muzika.queuemanager.kafkaMassages,org.muzika.authorizationmanager.kafkaMessages");
-        
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
@@ -95,19 +86,8 @@ public class KafkaConsumerConfig {
 
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, UserCreatedEvent> userCreatedListenerContainerFactory() {
-        log.info("Creating user-created listener container factory");
         ConcurrentKafkaListenerContainerFactory<String, UserCreatedEvent> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(userCreatedConsumerFactory());
-        
-        // Add error handler to log deserialization and other errors
-        DefaultErrorHandler errorHandler = new DefaultErrorHandler(new FixedBackOff(1000L, 3L));
-        errorHandler.setRetryListeners((record, ex, deliveryAttempt) -> {
-            log.error("Failed to process user-created event. Delivery attempt: {}, Record: {}, Error: {}", 
-                    deliveryAttempt, record, ex.getMessage(), ex);
-        });
-        factory.setCommonErrorHandler(errorHandler);
-        
-        log.info("User-created listener container factory created successfully");
         return factory;
     }
 
