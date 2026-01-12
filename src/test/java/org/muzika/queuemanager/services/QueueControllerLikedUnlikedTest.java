@@ -60,7 +60,7 @@ class QueueControllerLikedUnlikedTest {
     void testMarkSongAsLiked_Success() throws Exception {
         doNothing().when(userService).markSongAsLiked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/liked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -73,7 +73,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new IllegalArgumentException("Song not found: " + songId))
                 .when(userService).markSongAsLiked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/liked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
@@ -86,7 +86,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new IllegalArgumentException("User not found: " + username))
                 .when(userService).markSongAsLiked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/liked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
@@ -97,7 +97,7 @@ class QueueControllerLikedUnlikedTest {
     void testMarkSongAsLiked_Unauthorized() throws Exception {
         SecurityContextHolder.clearContext();
 
-        mockMvc.perform(post("/songs/{id}/liked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
@@ -110,7 +110,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new RuntimeException("Database error"))
                 .when(userService).markSongAsLiked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/liked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 
@@ -122,7 +122,7 @@ class QueueControllerLikedUnlikedTest {
     void testMarkSongAsUnliked_Success() throws Exception {
         doNothing().when(userService).markSongAsUnliked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/unliked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/unliked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
@@ -135,7 +135,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new IllegalArgumentException("Song not found: " + songId))
                 .when(userService).markSongAsUnliked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/unliked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/unliked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
@@ -148,7 +148,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new IllegalArgumentException("User not found: " + username))
                 .when(userService).markSongAsUnliked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/unliked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/unliked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
@@ -159,7 +159,7 @@ class QueueControllerLikedUnlikedTest {
     void testMarkSongAsUnliked_Unauthorized() throws Exception {
         SecurityContextHolder.clearContext();
 
-        mockMvc.perform(post("/songs/{id}/unliked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/unliked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
@@ -172,7 +172,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new RuntimeException("Database error"))
                 .when(userService).markSongAsUnliked(eq(username), eq(songId));
 
-        mockMvc.perform(post("/songs/{id}/unliked", songId)
+        mockMvc.perform(post("/api/queue/songs/{id}/unliked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 
@@ -184,7 +184,7 @@ class QueueControllerLikedUnlikedTest {
     void testGetSongLikedStatus_SongIsLiked() throws Exception {
         when(userService.isSongLiked(eq(username), eq(songId))).thenReturn(true);
 
-        mockMvc.perform(get("/songs/{id}/liked", songId)
+        mockMvc.perform(get("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(true));
@@ -197,7 +197,7 @@ class QueueControllerLikedUnlikedTest {
     void testGetSongLikedStatus_SongIsNotLiked() throws Exception {
         when(userService.isSongLiked(eq(username), eq(songId))).thenReturn(false);
 
-        mockMvc.perform(get("/songs/{id}/liked", songId)
+        mockMvc.perform(get("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.liked").value(false));
@@ -211,7 +211,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new IllegalArgumentException("User not found: " + username))
                 .when(userService).isSongLiked(eq(username), eq(songId));
 
-        mockMvc.perform(get("/songs/{id}/liked", songId)
+        mockMvc.perform(get("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest());
 
@@ -222,7 +222,7 @@ class QueueControllerLikedUnlikedTest {
     void testGetSongLikedStatus_Unauthorized() throws Exception {
         SecurityContextHolder.clearContext();
 
-        mockMvc.perform(get("/songs/{id}/liked", songId)
+        mockMvc.perform(get("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isUnauthorized());
 
@@ -235,7 +235,7 @@ class QueueControllerLikedUnlikedTest {
         doThrow(new RuntimeException("Database error"))
                 .when(userService).isSongLiked(eq(username), eq(songId));
 
-        mockMvc.perform(get("/songs/{id}/liked", songId)
+        mockMvc.perform(get("/api/queue/songs/{id}/liked", songId)
                 .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isInternalServerError());
 

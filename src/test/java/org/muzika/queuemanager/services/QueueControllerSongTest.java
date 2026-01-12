@@ -81,7 +81,7 @@ class QueueControllerSongTest {
         // Mock file storage
         when(fileStorageService.getFile("test-song.mp3")).thenReturn(mockResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.parseMediaType("audio/mpeg").toString()))
                 .andExpect(header().exists(HttpHeaders.CONTENT_LENGTH))
@@ -98,7 +98,7 @@ class QueueControllerSongTest {
         // Mock song not found
         when(songService.findByUUID(songId)).thenThrow(new RuntimeException("Song not found"));
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isNotFound());
 
         verify(songService, times(1)).findByUUID(songId);
@@ -114,7 +114,7 @@ class QueueControllerSongTest {
         // Mock file not found
         when(fileStorageService.getFile("test-song.mp3")).thenThrow(new IOException("File not found"));
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isNotFound());
 
         verify(songService, times(1)).findByUUID(songId);
@@ -126,7 +126,7 @@ class QueueControllerSongTest {
         // Clear security context to simulate unauthenticated user
         SecurityContextHolder.clearContext();
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isUnauthorized());
 
         verify(songService, never()).findByUUID(any());
@@ -140,7 +140,7 @@ class QueueControllerSongTest {
         song.setUrl(null);
         when(songService.findByUUID(songId)).thenReturn(song);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isNotFound());
 
         verify(songService, times(1)).findByUUID(songId);
@@ -154,7 +154,7 @@ class QueueControllerSongTest {
         song.setUrl("");
         when(songService.findByUUID(songId)).thenReturn(song);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isNotFound());
 
         verify(songService, times(1)).findByUUID(songId);
@@ -170,7 +170,7 @@ class QueueControllerSongTest {
         // Mock invalid path exception
         when(fileStorageService.getFile("test-song.mp3")).thenThrow(new IllegalArgumentException("Invalid path"));
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isInternalServerError());
 
         verify(songService, times(1)).findByUUID(songId);
@@ -184,7 +184,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("test-song.mp3")).thenReturn(mockResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.parseMediaType("audio/mpeg").toString()));
     }
@@ -200,7 +200,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("test-song.flac")).thenReturn(flacResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.parseMediaType("audio/flac").toString()));
     }
@@ -216,7 +216,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("test-song.wav")).thenReturn(wavResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.parseMediaType("audio/wav").toString()));
     }
@@ -232,7 +232,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("test-song.aiff")).thenReturn(aiffResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.parseMediaType("audio/aiff").toString()));
     }
@@ -248,7 +248,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("test-song.unknown")).thenReturn(unknownResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM.toString()));
     }
@@ -260,7 +260,7 @@ class QueueControllerSongTest {
         when(songService.findByUUID(songId)).thenReturn(song);
         when(fileStorageService.getFile("/path/to/test-song.mp3")).thenReturn(mockResource);
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"test-song.mp3\""));
     }
@@ -271,7 +271,7 @@ class QueueControllerSongTest {
         // Mock unexpected exception
         when(songService.findByUUID(songId)).thenThrow(new RuntimeException("Unexpected error"));
 
-        mockMvc.perform(get("/songs/{id}", songId))
+        mockMvc.perform(get("/api/queue/songs/{id}", songId))
                 .andExpect(status().isNotFound());
 
         verify(songService, times(1)).findByUUID(songId);
