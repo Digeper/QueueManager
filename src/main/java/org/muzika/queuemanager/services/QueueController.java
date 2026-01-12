@@ -30,6 +30,7 @@ import java.util.concurrent.CompletableFuture;
 @Slf4j
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH})
+@RequestMapping("/api/queue")
 public class QueueController {
 
     private final QueueService queueService;
