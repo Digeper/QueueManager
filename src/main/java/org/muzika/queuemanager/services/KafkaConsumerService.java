@@ -73,32 +73,38 @@ public class KafkaConsumerService {
     public void consumeUserCreatedEvent(UserCreatedEvent event) {
         log.info("Received user created event: userId={}, username={}", event.getUserId(), event.getUsername());
         try {
+            // Check if user already exists
             userService.getUserIdByUsername(event.getUsername());
-        }catch (Exception e1){
+            log.info("User already exists in QueueManager: username={}", event.getUsername());
+        } catch (Exception e1) {
+            // User doesn't exist, create it
             try {
                 userService.createUserFromEvent(event.getUserId(), event.getUsername());
                 log.info("Successfully created user in QueueManager: userId={}, username={}", event.getUserId(), event.getUsername());
+                
+                // Initialize queue with random songs
+                List<Song> songs = songService.getRandomSongsWithUrl(10);
+                try {
+                    userService.loadInitalQueue(event.getUserId(), event.getUsername(), songs);
+                    log.info("Successfully loaded initial songs for user: username={}, songCount={}", event.getUsername(), songs.size());
+                } catch (Exception e) {
+                    log.error("Failed to load initial queue for user: username={}, error={}", event.getUsername(), e.getMessage(), e);
+                }
+                
+                // Add songs to queue
+                songs = userService.getAllUserSongs(event.getUsername());
+                try {
+                    for (Song song : songs) {
+                        queueService.addToQueue(song.getId(), event.getUsername());
+                    }
+                    log.info("Successfully added songs to queue for user: username={}, songCount={}", event.getUsername(), songs.size());
+                } catch (Exception e) {
+                    log.error("Failed to add songs to queue for user: username={}, error={}", event.getUsername(), e.getMessage(), e);
+                }
             } catch (Exception e) {
                 log.error("Failed to create user from event: userId={}, username={}, error={}",
                         event.getUserId(), event.getUsername(), e.getMessage(), e);
             }
-            List<Song> songs = songService.getRandomSongsWithUrl(10);
-            try {
-                userService.loadInitalQueue(event.getUserId(), event.getUsername(),songs);
-            } catch (Exception e) {
-                log.error("faild to load queqe {}",e);
-            }
-            songs = userService.getAllUserSongs(event.getUsername());
-            try {
-                for (Song song : songs) {
-                    queueService.addToQueue(song.getId(), event.getUsername());
-                }
-            }catch (Exception e){
-                log.error("faild to load queqe {}",e);
-            }
         }
-
-
-
     }
 }
