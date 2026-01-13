@@ -1,5 +1,13 @@
 package org.muzika.queuemanager.services;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.muzika.queuemanager.dto.AddSongToQueueRequest;
 import org.muzika.queuemanager.dto.QueueResponse;
@@ -31,6 +39,7 @@ import java.util.concurrent.CompletableFuture;
 @RestController
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS, RequestMethod.PATCH})
 @RequestMapping("/api/queue")
+@Tag(name = "Queue", description = "Queue management endpoints")
 public class QueueController {
 
     private final QueueService queueService;
@@ -57,6 +66,26 @@ public class QueueController {
     }
 
     @GetMapping("/queue")
+    @Operation(
+        summary = "Get songs in queue",
+        description = "Retrieve all songs in the queue for the authenticated user"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Queue retrieved successfully",
+            content = @Content(schema = @Schema(implementation = QueueResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
     public ResponseEntity<QueueResponse> getQueue() {
         log.debug("Get queue{}", getAuthenticatedUsername());
         try {
@@ -97,7 +126,32 @@ public class QueueController {
     }
 
     @PostMapping("/queue")
-    public ResponseEntity<?> addSongToQueue(@RequestBody AddSongToQueueRequest request) {
+    @Operation(
+        summary = "Add song to queue",
+        description = "Add a song to the queue at a specific position"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song added to queue successfully"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request (missing required fields or invalid position)"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<?> addSongToQueue(
+        @Parameter(description = "Song ID and position to add to queue", required = true)
+        @RequestBody AddSongToQueueRequest request) {
         try {
             String username = getAuthenticatedUsername();
             
@@ -121,6 +175,25 @@ public class QueueController {
     }
 
     @PostMapping("/queue/check")
+    @Operation(
+        summary = "Check and refill queue",
+        description = "Manually trigger queue check and refill to ensure minimum queue size"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Queue check completed successfully"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
     public ResponseEntity<?> checkAndRefillQueue() {
         try {
             String username = getAuthenticatedUsername();
@@ -140,7 +213,32 @@ public class QueueController {
     }
 
     @PostMapping("/queue/skipped")
-    public ResponseEntity<?> markSongAsSkipped(@RequestBody SongIdRequest request) {
+    @Operation(
+        summary = "Mark song as skipped",
+        description = "Mark a song as skipped and remove it from the queue, then refill queue"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song marked as skipped successfully"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request (missing songId)"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<?> markSongAsSkipped(
+        @Parameter(description = "Song ID and optional queue entry ID", required = true)
+        @RequestBody SongIdRequest request) {
         try {
             String username = getAuthenticatedUsername();
             
@@ -175,7 +273,32 @@ public class QueueController {
     }
 
     @PostMapping("/queue/finished")
-    public ResponseEntity<?> markSongAsFinished(@RequestBody SongIdRequest request) {
+    @Operation(
+        summary = "Mark song as finished",
+        description = "Mark a song as finished, increment listen count, remove from queue, and refill queue"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song marked as finished successfully"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request (missing songId)"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<?> markSongAsFinished(
+        @Parameter(description = "Song ID and optional queue entry ID", required = true)
+        @RequestBody SongIdRequest request) {
         try {
             String username = getAuthenticatedUsername();
             
@@ -211,7 +334,33 @@ public class QueueController {
     }
 
     @GetMapping("/songs/{id}")
-    public ResponseEntity<Resource> getSong(@PathVariable UUID id) {
+    @Operation(
+        summary = "Get song file",
+        description = "Download the audio file for a song by ID. Returns the audio file with appropriate content type."
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song file retrieved successfully",
+            content = @Content(mediaType = "audio/mpeg")
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Song not found"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<Resource> getSong(
+        @Parameter(description = "Song UUID", required = true, example = "770e8400-e29b-41d4-a716-446655440002")
+        @PathVariable UUID id) {
         try {
             // Authentication check
             String username = getAuthenticatedUsername();
@@ -273,7 +422,33 @@ public class QueueController {
     }
 
     @GetMapping("/songs/{id}/liked")
-    public ResponseEntity<SongLikedResponse> getSongLikedStatus(@PathVariable UUID id) {
+    @Operation(
+        summary = "Get song liked status",
+        description = "Check if a song is liked by the authenticated user"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song liked status retrieved successfully",
+            content = @Content(schema = @Schema(implementation = SongLikedResponse.class))
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<SongLikedResponse> getSongLikedStatus(
+        @Parameter(description = "Song UUID", required = true, example = "770e8400-e29b-41d4-a716-446655440002")
+        @PathVariable UUID id) {
         try {
             String username = getAuthenticatedUsername();
             
@@ -292,7 +467,32 @@ public class QueueController {
     }
 
     @PostMapping("/songs/{id}/liked")
-    public ResponseEntity<?> markSongAsLiked(@PathVariable UUID id) {
+    @Operation(
+        summary = "Mark song as liked",
+        description = "Mark a song as liked by the authenticated user"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song marked as liked successfully"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<?> markSongAsLiked(
+        @Parameter(description = "Song UUID", required = true, example = "770e8400-e29b-41d4-a716-446655440002")
+        @PathVariable UUID id) {
         try {
             String username = getAuthenticatedUsername();
             
@@ -311,7 +511,32 @@ public class QueueController {
     }
 
     @PostMapping("/songs/{id}/unliked")
-    public ResponseEntity<?> markSongAsUnliked(@PathVariable UUID id) {
+    @Operation(
+        summary = "Mark song as unliked",
+        description = "Mark a song as unliked by the authenticated user"
+    )
+    @SecurityRequirement(name = "bearerAuth")
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Song marked as unliked successfully"
+        ),
+        @ApiResponse(
+            responseCode = "400",
+            description = "Bad request"
+        ),
+        @ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized (invalid or missing JWT token)"
+        ),
+        @ApiResponse(
+            responseCode = "500",
+            description = "Internal server error"
+        )
+    })
+    public ResponseEntity<?> markSongAsUnliked(
+        @Parameter(description = "Song UUID", required = true, example = "770e8400-e29b-41d4-a716-446655440002")
+        @PathVariable UUID id) {
         try {
             String username = getAuthenticatedUsername();
             
