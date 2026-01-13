@@ -1,0 +1,501 @@
+openapi: 3.1.0
+info:
+  title: QueueManager API
+  description: REST API for the QueueManager service that manages song queues and
+    user interactions
+  version: 1.0.0
+servers:
+- url: http://localhost:8090
+  description: Generated server url
+security:
+- bearerAuth: []
+tags:
+- name: Health
+  description: Health check endpoints
+- name: Queue
+  description: Queue management endpoints
+paths:
+  /api/queue/songs/{id}/unliked:
+    post:
+      tags:
+      - Queue
+      summary: Mark song as unliked
+      description: Mark a song as unliked by the authenticated user
+      operationId: markSongAsUnliked
+      parameters:
+      - name: id
+        in: path
+        description: Song UUID
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: 770e8400-e29b-41d4-a716-446655440002
+      responses:
+        '200':
+          description: Song marked as unliked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /api/queue/songs/{id}/liked:
+    get:
+      tags:
+      - Queue
+      summary: Get song liked status
+      description: Check if a song is liked by the authenticated user
+      operationId: getSongLikedStatus
+      parameters:
+      - name: id
+        in: path
+        description: Song UUID
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: 770e8400-e29b-41d4-a716-446655440002
+      responses:
+        '200':
+          description: Song liked status retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongLikedResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongLikedResponse'
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongLikedResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SongLikedResponse'
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Queue
+      summary: Mark song as liked
+      description: Mark a song as liked by the authenticated user
+      operationId: markSongAsLiked
+      parameters:
+      - name: id
+        in: path
+        description: Song UUID
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: 770e8400-e29b-41d4-a716-446655440002
+      responses:
+        '200':
+          description: Song marked as liked successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /api/queue/queue:
+    get:
+      tags:
+      - Queue
+      summary: Get songs in queue
+      description: Retrieve all songs in the queue for the authenticated user
+      operationId: getQueue
+      responses:
+        '200':
+          description: Queue retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueResponse'
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueResponse'
+      security:
+      - bearerAuth: []
+    post:
+      tags:
+      - Queue
+      summary: Add song to queue
+      description: Add a song to the queue at a specific position
+      operationId: addSongToQueue
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSongToQueueRequest'
+        required: true
+      responses:
+        '200':
+          description: Song added to queue successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request (missing required fields or invalid position)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /api/queue/queue/skipped:
+    post:
+      tags:
+      - Queue
+      summary: Mark song as skipped
+      description: Mark a song as skipped and remove it from the queue, then refill
+        queue
+      operationId: markSongAsSkipped
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SongIdRequest'
+        required: true
+      responses:
+        '200':
+          description: Song marked as skipped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request (missing songId)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /api/queue/queue/finished:
+    post:
+      tags:
+      - Queue
+      summary: Mark song as finished
+      description: Mark a song as finished, increment listen count, remove from queue,
+        and refill queue
+      operationId: markSongAsFinished
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SongIdRequest'
+        required: true
+      responses:
+        '200':
+          description: Song marked as finished successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad request (missing songId)
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /api/queue/queue/check:
+    post:
+      tags:
+      - Queue
+      summary: Check and refill queue
+      description: Manually trigger queue check and refill to ensure minimum queue
+        size
+      operationId: checkAndRefillQueue
+      responses:
+        '200':
+          description: Queue check completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+      - bearerAuth: []
+  /health:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Check if the QueueManager service is running
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is UP
+          content:
+            application/json:
+              schema:
+                type: string
+  /api/queue/songs/{id}:
+    get:
+      tags:
+      - Queue
+      summary: Get song file
+      description: Download the audio file for a song by ID. Returns the audio file
+        with appropriate content type.
+      operationId: getSong
+      parameters:
+      - name: id
+        in: path
+        description: Song UUID
+        required: true
+        schema:
+          type: string
+          format: uuid
+        example: 770e8400-e29b-41d4-a716-446655440002
+      responses:
+        '200':
+          description: Song file retrieved successfully
+          content:
+            audio/mpeg: {}
+        '401':
+          description: Unauthorized (invalid or missing JWT token)
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Song not found
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+      security:
+      - bearerAuth: []
+  /:
+    get:
+      tags:
+      - Health
+      summary: Health check
+      description: Check if the QueueManager service is running
+      operationId: health
+      responses:
+        '200':
+          description: Service is UP
+          content:
+            application/json:
+              schema:
+                type: string
+components:
+  schemas:
+    AddSongToQueueRequest:
+      type: object
+      description: Song ID and position to add to queue
+      properties:
+        songId:
+          type: string
+          format: uuid
+          description: Song UUID
+          example: 770e8400-e29b-41d4-a716-446655440002
+        position:
+          type: integer
+          format: int32
+          description: Position in queue (0-based)
+          example: 0
+      required:
+      - position
+      - songId
+    SongIdRequest:
+      type: object
+      description: Song ID and optional queue entry ID
+      properties:
+        songId:
+          type: string
+          format: uuid
+          description: Song UUID
+          example: 770e8400-e29b-41d4-a716-446655440002
+        queueEntryId:
+          type: string
+          format: uuid
+          description: Optional queue entry ID - if provided, removes the specific
+            queue entry instead of first match
+          example: 880e8400-e29b-41d4-a716-446655440003
+      required:
+      - songId
+    SongLikedResponse:
+      type: object
+      description: Response indicating if a song is liked by the user
+      properties:
+        liked:
+          type: boolean
+          description: Whether the song is liked
+          example: true
+      required:
+      - liked
+    QueueResponse:
+      type: object
+      description: Queue response containing list of songs
+      properties:
+        songs:
+          type: array
+          description: List of songs in the queue
+          items:
+            $ref: '#/components/schemas/SongDTO'
+      required:
+      - songs
+    SongDTO:
+      type: object
+      description: Song information
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Song UUID
+          example: 770e8400-e29b-41d4-a716-446655440002
+        title:
+          type: string
+          description: Song title
+          example: Bohemian Rhapsody
+        artist:
+          type: string
+          description: Artist name
+          example: Queen
+        album:
+          type: string
+          description: Album name
+          example: A Night at the Opera
+        genre:
+          type: string
+          description: Genre
+          example: Rock
+        duration:
+          type: integer
+          format: int64
+          description: Duration in milliseconds
+          example: 355000
+        url:
+          type: string
+          description: File path/URL to the song file
+        queueEntryId:
+          type: string
+          format: uuid
+          description: Optional queue entry ID - only present when returned as part
+            of a queue
+          example: 880e8400-e29b-41d4-a716-446655440003
+      required:
+      - id
+      - title
+  securitySchemes:
+    bearerAuth:
+      type: http
+      description: 'JWT token in format: Bearer {token}'
+      scheme: bearer
+      bearerFormat: JWT
