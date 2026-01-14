@@ -303,11 +303,14 @@ jobs:
             kubectl apply -f storageclass.yaml
           fi
           
+          # Create backup and exclude resources that shouldn't be applied via kustomize
+          cp kustomization.yaml kustomization.yaml.bak
+          
+          # Exclude storageclass.yaml (has immutable fields, applied separately above)
+          sed -i '/^  - storageclass\.yaml$/d' kustomization.yaml
+          
           # Exclude secrets.yaml if using Key Vault
-          [ -f "secretproviderclass.yaml" ] && {
-            cp kustomization.yaml kustomization.yaml.bak
-            sed -i '/^  - secrets\.yaml$/d' kustomization.yaml
-          }
+          [ -f "secretproviderclass.yaml" ] && sed -i '/^  - secrets\.yaml$/d' kustomization.yaml
           
           kubectl apply -k .
           kubectl rollout status deployment/queuemanager -n muzika --timeout=300s
