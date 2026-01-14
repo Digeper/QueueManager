@@ -104,8 +104,6 @@ jobs:
           [ -n "${{ secrets.ACR_NAME }}" ] || (echo "ERROR: ACR_NAME secret is not set" && exit 1)
           [ -n "${{ secrets.ACR_USERNAME }}" ] || (echo "ERROR: ACR_USERNAME secret is not set" && exit 1)
           [ -n "${{ secrets.ACR_PASSWORD }}" ] || (echo "ERROR: ACR_PASSWORD secret is not set" && exit 1)
-          [ -n "${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" ] || (echo "ERROR: AZURE_STORAGE_ACCOUNT_NAME secret is not set" && exit 1)
-          [ -n "${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" ] || (echo "ERROR: AZURE_STORAGE_ACCOUNT_KEY secret is not set" && exit 1)
 
       - name: Login to Azure Container Registry
         uses: azure/docker-login@v1
@@ -221,13 +219,11 @@ jobs:
           [ -d "$K8S_DIR" ] || { echo "ERROR: Could not find k8s directory!"; exit 1; }
           
           cd "$K8S_DIR"
-          sed -i "s/\${ACR_NAME}/${{ secrets.ACR_NAME }}/g" kustomization.yaml deployment.yaml
+          sed -i "s/newTag: .*/newTag: ${{ needs.build.outputs.image_tag }}/" kustomization.yaml
+          sed -i "s/\${ACR_NAME}/${{ secrets.ACR_NAME }}/g" deployment.yaml kustomization.yaml
           
-          # Update image tag in kustomization.yaml
-          sed -i "s|newTag: .*|newTag: ${{ needs.build.outputs.image_tag }}|" kustomization.yaml
-          
-          # Update SecretProviderClass with Key Vault details
-          [ -f "secretproviderclass.yaml" ] || { echo "ERROR: secretproviderclass.yaml not found"; exit 1; }
+          # Update SecretProviderClass if it exists
+          [ -f "secretproviderclass.yaml" ] || exit 0
           [ -n "${{ secrets.KEYVAULT_NAME }}" ] || { echo "ERROR: KEYVAULT_NAME secret is required"; exit 1; }
           [ -n "${{ secrets.AZURE_TENANT_ID }}" ] || { echo "ERROR: AZURE_TENANT_ID secret is required"; exit 1; }
           
@@ -243,9 +239,6 @@ jobs:
             echo "ERROR: MANAGED_IDENTITY_CLIENT_ID secret is required"
             exit 1
           fi
-          
-          # Update deployment.yaml image tag
-          sed -i "s|:latest|:${{ needs.build.outputs.image_tag }}|g" deployment.yaml
 
       - name: Setup Key Vault secrets (SecretProviderClass)
         run: |
@@ -254,6 +247,8 @@ jobs:
           [ -d "$K8S_DIR" ] || { echo "ERROR: Could not find k8s directory!"; exit 1; }
           
           cd "$K8S_DIR"
+          [ -f "secretproviderclass.yaml" ] || { echo "No SecretProviderClass found, skipping Key Vault setup"; exit 0; }
+          
           echo "Applying SecretProviderClass..."
           kubectl apply -f secretproviderclass.yaml
           
@@ -290,29 +285,6 @@ jobs:
           kubectl logs -n muzika job/queuemanager-init-secret --tail=50 || true
           exit 1
 
-      - name: Create Azure Storage Secret
-        run: |
-          # Validate required secrets
-          [ -n "${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" ] || { echo "ERROR: AZURE_STORAGE_ACCOUNT_NAME secret is required"; exit 1; }
-          [ -n "${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" ] || { echo "ERROR: AZURE_STORAGE_ACCOUNT_KEY secret is required"; exit 1; }
-          
-          # Create or update the Azure Storage secret
-          # The secret is used by Azure File CSI driver to mount file shares
-          kubectl create secret generic azure-storage-secret \
-            --from-literal=azurestorageaccountname="${{ secrets.AZURE_STORAGE_ACCOUNT_NAME }}" \
-            --from-literal=azurestorageaccountkey="${{ secrets.AZURE_STORAGE_ACCOUNT_KEY }}" \
-            --namespace=muzika \
-            --dry-run=client -o yaml | kubectl apply -f -
-          
-          # Add labels to match the template
-          kubectl label secret azure-storage-secret -n muzika \
-            app=queuemanager \
-            app.kubernetes.io/component=storage \
-            app.kubernetes.io/part-of=muzika-platform \
-            --overwrite
-          
-          echo "✓ Azure Storage secret created/updated"
-
       - name: Deploy QueueManager
         run: |
           # Determine k8s directory path
@@ -331,19 +303,16 @@ jobs:
             kubectl apply -f storageclass.yaml
           fi
           
-          # Apply PVCs (for reference, actual mounts use inline volumes)
-          kubectl apply -f persistentvolumeclaims.yaml
+          # Exclude secrets.yaml if using Key Vault
+          [ -f "secretproviderclass.yaml" ] && {
+            cp kustomization.yaml kustomization.yaml.bak
+            sed -i '/^  - secrets\.yaml$/d' kustomization.yaml
+          }
           
-          # Exclude secrets.yaml if using Key Vault (managed by SecretProviderClass)
-          # Apply namespace, configmap, serviceaccount, deployment, service
-          kubectl apply -f namespace.yaml
-          kubectl apply -f configmap.yaml
-          kubectl apply -f serviceaccount.yaml
-          kubectl apply -f deployment.yaml
-          kubectl apply -f service.yaml
-          
-          # Wait for deployment rollout
+          kubectl apply -k .
           kubectl rollout status deployment/queuemanager -n muzika --timeout=300s
+          
+          [ -f "kustomization.yaml.bak" ] && mv kustomization.yaml.bak kustomization.yaml
 
       - name: Verify deployment
         run: |
